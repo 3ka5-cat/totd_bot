@@ -1,7 +1,7 @@
 deploy_user: totd_bot
 deploy_group: totd_bot
 
-app_repo: ssh://git@github.com:3ka5-cat/totd_bot.git
+app_repo: ssh://git@github.com/3ka5-cat/totd_bot.git
 app_folder: "/var/local/totd_bot"
 app_project_folder: "{{ app_folder }}/totd_bot/"
 
