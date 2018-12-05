@@ -1,0 +1,78 @@
+---
+- name: Create deploy group
+  group:
+    name: "{{ deploy_group }}"
+    state: present
+
+- name: Create user
+  user:
+    name: "{{ deploy_user }}"
+    groups: "{{ deploy_group }}"
+    state: present
+    create_home: yes
+
+- name: Ensure .ssh directory exists
+  file:
+    path: "/home/{{ deploy_user }}/.ssh"
+    state: directory
+    mode: 0700
+    owner: "{{ deploy_user }}"
+    group: "{{ deploy_group }}"
+
+- name: Ensure deploy key is present
+  copy:
+    content: "{{ deploy_private_key }}"
+    dest: "/home/{{ deploy_user }}/.ssh/id_rsa"
+    mode: 0600
+    directory_mode: 0700
+    owner: "{{ deploy_user }}"
+    group: "{{ deploy_group }}"
+
+- name: Create directory
+  file:
+    path: "{{ app_folder }}"
+    state: directory
+    recurse: yes
+    mode: 0755
+    owner: "{{ deploy_user }}"
+    group: "{{ deploy_group }}"
+
+- name: Install pipenv system-wide
+  pip:
+    name: pipenv
+
+- name: Update the code repository
+  become_user: "{{ deploy_user }}"
+  git:
+    repo: "{{ app_repo }}"
+    version: master
+    force: yes
+    dest: "{{ app_folder }}"
+    accept_hostkey: yes
+
+- include_tasks: install-setfacl-Debian.yml
+  when: ansible_os_family == 'Debian'
+
+- include_tasks: install-setfacl-RedHat.yml
+  when: ansible_os_family == 'RedHat'
+
+- name: Create .env file
+  become_user: "{{ deploy_user }}"
+  template:
+    src: env.j2
+    dest: "{{ app_folder }}/.env"
+
+- name: Install app requirements
+  become_user: "{{ deploy_user }}"
+  shell: /usr/local/bin/pipenv install --deploy --ignore-pipfile
+  args:
+    chdir: "{{ app_folder }}"
+
+- name: Copy .service profile
+  template:
+    src: "systemd_conf.j2"
+    dest: "/etc/systemd/system/{{ item.key }}.service"
+    mode: 0644
+  with_dict: "{{ systemd_conf_service }}"
+  notify:
+    - daemon-reload

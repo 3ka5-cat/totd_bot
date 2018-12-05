@@ -1,0 +1,4 @@
+---
+- name: install setfacl support
+  become: yes
+  yum: name=acl

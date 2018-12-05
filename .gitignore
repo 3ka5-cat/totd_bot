@@ -1,0 +1,19 @@
+# Basics
+*.py[cod]
+__pycache__
+*$py.class
+
+# Logs
+*.log
+
+# Pycharm
+.idea/*
+
+# Vim
+*~
+*.swp
+*.swo
+
+*.sqlite
+.env
+*.retry

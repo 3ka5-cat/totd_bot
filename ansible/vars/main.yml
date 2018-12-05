@@ -1,0 +1,23 @@
+deploy_user: totd_bot
+deploy_group: totd_bot
+
+app_repo: ssh://git@github.com:3ka5-cat/totd_bot.git
+app_folder: "/var/local/totd_bot"
+app_project_folder: "{{ app_folder }}/totd_bot/"
+
+systemd_conf_service:
+  totd_bot:
+  - Unit:
+    - Description: "Tip of the day bot service"
+    - After: network.target
+  - Service:
+    - PIDFile: "/run/totd_bot/pid"
+    - User: "{{ deploy_user }}"
+    - Group: "{{ deploy_group }}"
+    - WorkingDirectory: "{{ app_project_folder }}"
+    - ExecStart: "/usr/local/bin/pipenv run bot.py"
+    - ExecReload: "/bin/kill -s HUP $MAINPID"
+    - ExecStop: "/bin/kill -s TERM $MAINPID"
+    - Restart: "on-failure"
+  - Install:
+    - WantedBy: multi-user.target

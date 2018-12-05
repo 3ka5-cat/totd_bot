@@ -1,0 +1,9 @@
+- name: Deploy application
+  hosts: all
+  become: yes
+  vars_files:
+    - vars/main.yml
+  roles:
+    - role: app
+  tags:
+    - deploy

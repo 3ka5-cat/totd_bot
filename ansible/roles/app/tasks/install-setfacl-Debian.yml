@@ -1,0 +1,4 @@
+---
+- name: install setfacl support
+  become: yes
+  apt: pkg=acl
