@@ -10,7 +10,7 @@ from sqlalchemy.orm import sessionmaker
 from telegram.ext import CommandHandler, Filters, Updater
 from telegram.ext.jobqueue import Days
 
-from totd_bot.models import Base, Chat, Wisdom
+from bot.models import Base, Chat, Wisdom
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -25,6 +25,34 @@ db_url = env.str('DB_URL', '')
 engine = create_engine(db_url)
 create_session = sessionmaker()
 Base.metadata.create_all(engine)
+
+
+def start_bot():
+    admin_user_ids = env.list('ADMIN_USER_IDS', '41669938', subcast=int)
+    token = env.str('TG_API_TOKEN', '')
+    hour_to_post = env.int('POST_HOUR', 12)
+    minute_to_post = env.int('POST_MINUTE', 0)
+
+    updater = Updater(token=token)
+    dispatcher = updater.dispatcher
+
+    dispatcher.add_handler(CommandHandler('chat_id', show_chat_id))
+    dispatcher.add_handler(CommandHandler('allow_chat', allow_chat, pass_args=True,
+                                          filters=Filters.user(user_id=admin_user_ids)))
+    dispatcher.add_handler(CommandHandler('list_chats', show_allowed_chats,
+                                          filters=Filters.user(user_id=admin_user_ids)))
+    dispatcher.add_handler(CommandHandler('add_wisdom', add_wisdom, pass_args=True,
+                                          filters=Filters.user(user_id=admin_user_ids)))
+    dispatcher.add_handler(CommandHandler('list_wisdoms', show_wisdoms,
+                                          filters=Filters.user(user_id=admin_user_ids)))
+
+    job_queue = updater.job_queue
+    weekdays = (Days.MON, Days.TUE, Days.WED, Days.THU, Days.FRI)
+    time_to_run = datetime.time(hour=hour_to_post, minute=minute_to_post)
+    logger.info('Post time {}, Current datetime {}'.format(time_to_run, datetime.datetime.now()))
+    job_queue.run_daily(post_wisdom, time=time_to_run, days=weekdays)
+    # job_minute = job_queue.run_repeating(post_wisdom, interval=30)
+    updater.start_polling()
 
 
 def show_chat_id(bot, update):
@@ -95,31 +123,3 @@ def post_wisdom(bot, job):
         raise
     finally:
         session.close()
-
-
-if __name__ == '__main__':
-    admin_user_ids = env.list('ADMIN_USER_IDS', '41669938', subcast=int)
-    token = env.str('TG_API_TOKEN', '')
-    hour_to_post = env.int('POST_HOUR', 12)
-    minute_to_post = env.int('POST_MINUTE', 0)
-
-    updater = Updater(token=token)
-    dispatcher = updater.dispatcher
-
-    dispatcher.add_handler(CommandHandler('chat_id', show_chat_id))
-    dispatcher.add_handler(CommandHandler('allow_chat', allow_chat, pass_args=True,
-                                          filters=Filters.user(user_id=admin_user_ids)))
-    dispatcher.add_handler(CommandHandler('list_chats', show_allowed_chats,
-                                          filters=Filters.user(user_id=admin_user_ids)))
-    dispatcher.add_handler(CommandHandler('add_wisdom', add_wisdom, pass_args=True,
-                                          filters=Filters.user(user_id=admin_user_ids)))
-    dispatcher.add_handler(CommandHandler('list_wisdoms', show_wisdoms,
-                                          filters=Filters.user(user_id=admin_user_ids)))
-
-    job_queue = updater.job_queue
-    weekdays = (Days.MON, Days.TUE, Days.WED, Days.THU, Days.FRI)
-    time_to_run = datetime.time(hour=hour_to_post, minute=minute_to_post)
-    logger.info('Post time {}, Current datetime {}'.format(time_to_run, datetime.datetime.now()))
-    job_queue.run_daily(post_wisdom, time=time_to_run, days=weekdays)
-    # job_minute = job_queue.run_repeating(post_wisdom, interval=30)
-    updater.start_polling()

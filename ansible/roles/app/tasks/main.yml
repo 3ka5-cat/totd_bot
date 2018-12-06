@@ -53,9 +53,6 @@
 - include_tasks: install-setfacl-Debian.yml
   when: ansible_os_family == 'Debian'
 
-- include_tasks: install-setfacl-RedHat.yml
-  when: ansible_os_family == 'RedHat'
-
 - name: Create .env file
   become_user: "{{ deploy_user }}"
   template:
@@ -67,6 +64,9 @@
   shell: /usr/local/bin/pipenv install --deploy --ignore-pipfile
   args:
     chdir: "{{ app_folder }}"
+  environment:
+    PYENV_ROOT: "{{ pyenv_root }}"
+    PATH: "{{ pyenv_root }}/bin:{{ pyenv_root }}/shims:{{ ansible_env.PATH }}"
 
 - name: Copy .service profile
   template:
@@ -76,3 +76,7 @@
   with_dict: "{{ systemd_conf_service }}"
   notify:
     - daemon-reload
+
+- name: Ensure bot service is started and enabled to start at boot
+  service: name="{{ item.key }}" state=reloaded enabled=yes
+  with_dict: "{{ systemd_conf_service }}"
