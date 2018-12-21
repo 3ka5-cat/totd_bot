@@ -101,12 +101,12 @@ def add_wisdom(bot, update, args):
 def show_wisdoms(bot, update):
     session = create_session(bind=engine)
     try:
-        text = '\n'.join(['{}.{}'.format(n, s.text) for n, s in enumerate(session.query(Wisdom)[:30])])
+        text = '\n'.join(['{}.{}'.format(n, s.text) for n, s in enumerate(session.query(Wisdom)[:5])])
     except SQLAlchemyError:
         raise
     finally:
         session.close()
-    update.message.reply_text('First 30 wisdoms I have:\n{}'.format(text))
+    update.message.reply_text('First 5 wisdoms I have:\n{}...'.format(text[:4000]))
 
 
 def post_wisdom(bot, job):
