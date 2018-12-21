@@ -9,6 +9,7 @@ verify_ssl = true
 python-telegram-bot = "*"
 sqlalchemy = "*"
 environs = "*"
+click = "*"
 
 [requires]
 python_version = "3.6"
